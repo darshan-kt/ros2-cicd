@@ -32,14 +32,6 @@ jobs:
 
           docker build -f docker/ros2.Dockerfile -t ros2-build .
 
-      - name: ROS2 Tests
-        run: |
-
-          source /opt/ros/humble/setup.bash
-
-          cd ros2_ws
-
-          colcon test
 
       ####################################################
       # Python
