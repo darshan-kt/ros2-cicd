@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from fastapi import WebSocket
 
-from ros_bridge import *
+from ros_bridge import (
+    publisher_value,
+    subscriber_value,
+    publisher_alive,
+    subscriber_alive,
+)
 
 app = FastAPI()
 
@@ -12,18 +17,15 @@ def health():
     return {
         "publisher": publisher_alive,
         "subscriber": subscriber_alive,
-        "system":
-            publisher_alive and subscriber_alive
+        "system": publisher_alive and subscriber_alive,
     }
 
 
 @app.post("/reset")
 def reset_counter():
 
-    # call ROS service later
-
     return {
-        "message":"reset sent"
+        "message": "reset sent"
     }
 
 
@@ -37,6 +39,6 @@ async def websocket_endpoint(ws: WebSocket):
         await ws.send_json(
             {
                 "publisher": publisher_value,
-                "subscriber": subscriber_value
+                "subscriber": subscriber_value,
             }
         )

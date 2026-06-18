@@ -1,0 +1,163 @@
+name: ROS2 Monitoring CI
+
+on:
+
+  push:
+
+    branches:
+      - master
+
+  pull_request:
+
+jobs:
+
+  ci:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      ####################################################
+      # ROS2
+      ####################################################
+
+      - name: ROS2 Humble
+        uses: ros-tooling/setup-ros@v0.7
+
+      - name: Build ROS2 Package
+        run: |
+
+          source /opt/ros/humble/setup.bash
+
+          cd ros2_ws
+
+          colcon build
+
+      - name: ROS2 Tests
+        run: |
+
+          source /opt/ros/humble/setup.bash
+
+          cd ros2_ws
+
+          colcon test
+
+      ####################################################
+      # Python
+      ####################################################
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python Dependencies
+        run: |
+
+          pip install -r backend/requirements.txt
+
+          pip install -r backend/requirements-dev.txt
+
+      - name: Ruff
+        run: |
+
+          ruff check backend
+
+      - name: Pytest
+        run: |
+
+          cd backend
+
+          pytest -v
+
+      - name: Coverage
+        run: |
+
+          cd backend
+
+          coverage run -m pytest
+
+          coverage report --fail-under=80
+
+      ####################################################
+      # Security
+      ####################################################
+
+      - name: Bandit
+        run: |
+
+          bandit -r backend
+
+      ####################################################
+      # Docker
+      ####################################################
+
+      - name: Login DockerHub
+        if: github.event_name == 'push'
+
+        uses: docker/login-action@v3
+
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build ROS2 Image
+        run: |
+
+          docker build \
+          -f docker/ros2.Dockerfile \
+          -t ros2-monitoring:${{ github.sha }} .
+
+      - name: Build Backend Image
+        run: |
+
+          docker build \
+          -f docker/backend.Dockerfile \
+          -t backend:${{ github.sha }} .
+
+      - name: Build Frontend Image
+        run: |
+
+          docker build \
+          -f docker/frontend.Dockerfile \
+          -t frontend:${{ github.sha }} .
+
+      - name: Push ROS2 Image
+        if: github.event_name == 'push'
+
+        run: |
+
+          docker tag \
+          ros2-monitoring:${{ github.sha }} \
+          ${{ secrets.DOCKERHUB_USERNAME }}/ros2-monitoring:${{ github.sha }}
+
+          docker push \
+          ${{ secrets.DOCKERHUB_USERNAME }}/ros2-monitoring:${{ github.sha }}
+
+      - name: Push Backend Image
+        if: github.event_name == 'push'
+
+        run: |
+
+          docker tag \
+          backend:${{ github.sha }} \
+          ${{ secrets.DOCKERHUB_USERNAME }}/ros2-backend:${{ github.sha }}
+
+          docker push \
+          ${{ secrets.DOCKERHUB_USERNAME }}/ros2-backend:${{ github.sha }}
+
+      - name: Push Frontend Image
+        if: github.event_name == 'push'
+
+        run: |
+
+          docker tag \
+          frontend:${{ github.sha }} \
+          ${{ secrets.DOCKERHUB_USERNAME }}/ros2-frontend:${{ github.sha }}
+
+          docker push \
+          ${{ secrets.DOCKERHUB_USERNAME }}/ros2-frontend:${{ github.sha }}
