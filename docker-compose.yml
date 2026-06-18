@@ -1,0 +1,33 @@
+services:
+
+  ros2:
+
+    build:
+      context: .
+      dockerfile: docker/ros2.Dockerfile
+
+    container_name: ros2
+
+  backend:
+
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      - ros2
+
+  frontend:
+
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+
+    ports:
+      - "8080:80"
+
+    depends_on:
+      - backend
