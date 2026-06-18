@@ -30,11 +30,7 @@ jobs:
       - name: Build ROS2 Package
         run: |
 
-          source /opt/ros/humble/setup.bash
-
-          cd ros2_ws
-
-          colcon build
+          docker build -f docker/ros2.Dockerfile -t ros2-build .
 
       - name: ROS2 Tests
         run: |
