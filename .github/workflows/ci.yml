@@ -55,20 +55,10 @@ jobs:
 
           ruff check backend
 
-      - name: Pytest
+      - name: Pytest + Coverage
         run: |
-
           cd backend
-
-          pytest -v
-
-      - name: Coverage
-        run: |
-
-          cd backend
-
-          coverage run -m pytest
-
+          PYTHONPATH=. coverage run -m pytest -v
           coverage report --fail-under=80
 
       ####################################################
