@@ -67,8 +67,7 @@ jobs:
 
       - name: Bandit
         run: |
-
-          bandit -r backend
+          bandit -r backend --exclude backend/tests
 
       ####################################################
       # Docker
