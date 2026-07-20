@@ -11,7 +11,7 @@ frontend:
   replicaCount: 2
   image:
     repository: darshu916/ros2-frontend
-    tag: dd09e4b7a4f7b26af64f646b473239c64aed410a
+    tag: 22a0d510cdaf64ca625a1b46b61457eeab66f1f6
     pullPolicy: Always
   containerPort: 80
   service:
@@ -27,7 +27,7 @@ backend:
   # pipeline that bumps `tag` below on every push to master) now tracks.
   image:
     repository: darshu916/ros2-backend
-    tag: dd09e4b7a4f7b26af64f646b473239c64aed410a
+    tag: 22a0d510cdaf64ca625a1b46b61457eeab66f1f6
     pullPolicy: IfNotPresent
   containerPort: 8000
   service:
@@ -58,9 +58,7 @@ ros2:
     repository: darshu916/ros2-monitoring
     tag: dd09e4b7a4f7b26af64f646b473239c64aed410a
     pullPolicy: IfNotPresent
-
   resources: {}
-
 config:
   API_NAME: "ROS2 Backend"
   DEBUG: "true"
