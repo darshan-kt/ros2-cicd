@@ -1,0 +1,25 @@
+Name:               argocd/ros2-cicd
+Project:            default
+Server:             https://kubernetes.default.svc
+Namespace:          cicd-demo
+URL:                https://localhost:8081/applications/ros2-cicd
+Source:
+- Repo:             https://github.com/darshan-kt/ros2-cicd.git
+  Target:           master
+  Path:             helm/ros2-cicd
+SyncWindow:         Sync Allowed
+Sync Policy:        Automated (Prune)
+Sync Status:        Synced to master (4034433)
+Health Status:      Healthy
+
+GROUP              KIND        NAMESPACE  NAME              STATUS   HEALTH   HOOK  MESSAGE
+                   Namespace   cicd-demo  cicd-demo         Running  Synced         namespace/cicd-demo unchanged
+                   Secret      cicd-demo  backend-secret    Synced                  secret/backend-secret configured
+                   ConfigMap   cicd-demo  backend-config    Synced                  configmap/backend-config unchanged
+                   Service     cicd-demo  frontend-service  Synced   Healthy        service/frontend-service unchanged
+                   Service     cicd-demo  backend-service   Synced   Healthy        service/backend-service unchanged
+apps               Deployment  cicd-demo  ros2              Synced   Healthy        deployment.apps/ros2 unchanged
+apps               Deployment  cicd-demo  frontend          Synced   Healthy        deployment.apps/frontend unchanged
+apps               Deployment  cicd-demo  backend           Synced   Healthy        deployment.apps/backend unchanged
+networking.k8s.io  Ingress     cicd-demo  ros2-ingress      Synced   Healthy        ingress.networking.k8s.io/ros2-ingress unchanged
+                   Namespace              cicd-demo         Synced                  
