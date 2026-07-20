@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
 
 <head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>
 ROS2 Nodes Tracking System
@@ -15,41 +18,50 @@ ROS2 Nodes Tracking System
 
 <body>
 
-<h1>
-ROS2 Nodes Tracking System
-</h1>
+<div class="app">
 
-<div id="health">
-🔴 Unknown
+  <header class="topbar">
+
+    <h1>
+      <span class="logo">🤖</span>
+      ROS2 Nodes Tracking System
+    </h1>
+
+    <div id="connection" class="pill unknown">
+      <span class="dot"></span>
+      <span class="label">Connecting…</span>
+    </div>
+
+  </header>
+
+  <div id="health" class="pill health unknown">
+    <span class="dot"></span>
+    <span class="label">Checking system health…</span>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-icon">📤</div>
+      <h2>Publisher Node</h2>
+      <div id="publisher" class="value">0</div>
+      <div class="sub">messages on /counter</div>
+    </div>
+
+    <div class="card">
+      <div class="card-icon">📥</div>
+      <h2>Subscriber Node</h2>
+      <div id="subscriber" class="value">0</div>
+      <div class="sub">last received</div>
+    </div>
+
+  </div>
+
+  <button id="reset-btn" onclick="resetCounter()">
+    <span class="btn-label">↺ Reset Counter</span>
+  </button>
+
 </div>
-
-<div class="card">
-
-<h2>
-Publisher Node
-</h2>
-
-<div id="publisher">
-0
-</div>
-
-</div>
-
-<div class="card">
-
-<h2>
-Subscriber Node
-</h2>
-
-<div id="subscriber">
-0
-</div>
-
-</div>
-
-<button onclick="resetCounter()">
-Reset Counter
-</button>
 
 <script src="app.js"></script>
 

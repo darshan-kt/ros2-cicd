@@ -1,9 +1,29 @@
-FROM python:3.12-slim
+FROM ros:humble AS ros_build
+
+WORKDIR /ws
+
+COPY ros2_ws /ws
+
+RUN bash -c "source /opt/ros/humble/setup.bash && colcon build"
+
+FROM ros:humble
 
 WORKDIR /app
 
+COPY --from=ros_build /ws/install /ws/install
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
 COPY backend .
 
-RUN pip install -r requirements.txt
+COPY docker/start_backend.sh /start_backend.sh
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+RUN chmod +x /start_backend.sh
+
+CMD ["/start_backend.sh"]
