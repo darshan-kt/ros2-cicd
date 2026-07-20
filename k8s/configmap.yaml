@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: backend-config
+  namespace: cicd-demo
+
+data:
+
+  API_NAME: "ROS2 Backend"
+
+  DEBUG: "true"
+
+  ROS_DOMAIN_ID: "0"
+
+  ROS_MASTER: "localhost"

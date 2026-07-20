@@ -21,7 +21,7 @@ spec:
       containers:
       - name: frontend
 
-        image: darshu916/ros2-frontend:latest
+        image: darshu916/ros2-frontend:ec451793da1b21e82b4cc98fbd8355ed1accb917
 
         ports:
         - containerPort: 80
