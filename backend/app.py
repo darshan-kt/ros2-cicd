@@ -61,5 +61,5 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         try:
             await websocket.close()
-        except Exception:
-            pass
+        except Exception as e:
+            print("WebSocket close error:", e)
