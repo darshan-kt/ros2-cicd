@@ -4,7 +4,10 @@ WORKDIR /ws
 
 COPY ros2_ws /ws
 
-RUN . /opt/ros/humble/setup.sh && \
-    colcon build
+RUN bash -c "source /opt/ros/humble/setup.bash && colcon build"
 
-CMD bash
+COPY docker/start_ros.sh /start_ros.sh
+
+RUN chmod +x /start_ros.sh
+
+CMD ["/start_ros.sh"]

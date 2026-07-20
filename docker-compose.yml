@@ -8,11 +8,20 @@ services:
 
     container_name: ros2
 
+    restart: unless-stopped
+
+    networks:
+      - rosnet
+
   backend:
 
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+
+    container_name: backend
+
+    restart: unless-stopped
 
     ports:
       - "8000:8000"
@@ -20,14 +29,28 @@ services:
     depends_on:
       - ros2
 
+    networks:
+      - rosnet
+
   frontend:
 
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
 
+    container_name: frontend
+
+    restart: unless-stopped
+
     ports:
       - "8080:80"
 
     depends_on:
       - backend
+
+    networks:
+      - rosnet
+
+networks:
+  rosnet:
+    driver: bridge
