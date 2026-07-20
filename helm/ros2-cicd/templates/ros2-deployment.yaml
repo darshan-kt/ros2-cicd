@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: ros2
+  namespace: {{ .Values.namespace }}
+
+spec:
+
+  # Exactly one replica: this single pod runs both the publisher and
+  # subscriber nodes (via start_ros.sh), same as the docker-compose
+  # service. Multiple replicas would mean multiple competing publishers
+  # on /counter.
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ros2
+
+  template:
+
+    metadata:
+      labels:
+        app: ros2
+
+    spec:
+
+      containers:
+
+      - name: ros2
+
+        image: "{{ .Values.ros2.image.repository }}:{{ .Values.ros2.image.tag }}"
+
+        imagePullPolicy: {{ .Values.ros2.image.pullPolicy }}
+
+        # Shares backend-config so ROS_DOMAIN_ID always matches the
+        # backend's - they must agree for DDS discovery to work at all.
+        envFrom:
+          - configMapRef:
+              name: backend-config
+
+        {{- if .Values.ros2.resources }}
+        resources:
+          {{- toYaml .Values.ros2.resources | nindent 10 }}
+        {{- end }}

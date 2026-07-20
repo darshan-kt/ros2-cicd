@@ -1,4 +1,10 @@
-const BACKEND_HOST = `${window.location.hostname}:8000`;
+// docker-compose serves frontend/backend on the same host, different ports
+// (localhost:8080 / localhost:8000). The k8s ingress instead routes by
+// hostname on the same port (ros2.local / api.ros2.local). Detect which
+// one we're running under from the page's own hostname.
+const BACKEND_HOST = window.location.hostname.endsWith(".local")
+    ? `api.${window.location.hostname}`
+    : `${window.location.hostname}:8000`;
 
 const healthEl = document.getElementById("health");
 const connectionEl = document.getElementById("connection");

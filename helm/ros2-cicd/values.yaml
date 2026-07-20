@@ -35,12 +35,11 @@ backend:
     port: 8000
     targetPort: 8000
   resources: {}
-  # Probes are OFF by default because the currently deployed backend image
-  # has no /health or /ready routes, and there is no ROS2 workload in this
-  # chart yet for /ready to check against. Flip this on once both exist
-  # (tracked as Phase 4 of the CD roadmap).
+  # Enabled now that the ros2 Deployment (below) gives /ready something
+  # real to check: DDS discovery between this pod and ros2 was verified
+  # working on minikube's single-node bridge network before flipping this on.
   probes:
-    enabled: false
+    enabled: true
     readiness:
       path: /ready
       initialDelaySeconds: 5
@@ -54,6 +53,14 @@ backend:
       path: /health
       failureThreshold: 30
       periodSeconds: 2
+ros2:
+  image:
+    repository: darshu916/ros2-monitoring
+    tag: dd09e4b7a4f7b26af64f646b473239c64aed410a
+    pullPolicy: IfNotPresent
+
+  resources: {}
+
 config:
   API_NAME: "ROS2 Backend"
   DEBUG: "true"
