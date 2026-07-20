@@ -1,0 +1,97 @@
+# Default values for ros2-cicd.
+# These defaults mirror what is currently running in the cluster
+# (converted 1:1 from k8s/), so a first `helm upgrade --install`
+# against an existing cluster should be a no-op diff.
+
+namespace: cicd-demo
+
+# Whether this chart should create the Namespace itself.
+# Set to false if the namespace already exists and is managed elsewhere.
+namespaceCreate: true
+
+frontend:
+  replicaCount: 2
+
+  image:
+    repository: darshu916/ros2-frontend
+    tag: ec451793da1b21e82b4cc98fbd8355ed1accb917
+    pullPolicy: Always
+
+  containerPort: 80
+
+  service:
+    type: NodePort
+    port: 80
+    targetPort: 80
+
+  resources: {}
+
+backend:
+  replicaCount: 2
+
+  # NOTE: this used to point at darshu916/fastapi-cicd:latest, a stale,
+  # orphaned image with none of the app's routes. ci.yml actually publishes
+  # to ros2-backend:<git-sha>, so that's what this chart (and the CD
+  # pipeline that bumps `tag` below on every push to master) now tracks.
+  image:
+    repository: darshu916/ros2-backend
+    tag: 470d7e1f7cef9cf9e73e301756e92c4dcf38ac6f
+    pullPolicy: IfNotPresent
+
+  containerPort: 8000
+
+  service:
+    type: NodePort
+    port: 8000
+    targetPort: 8000
+
+  resources: {}
+
+  # Probes are OFF by default because the currently deployed backend image
+  # has no /health or /ready routes, and there is no ROS2 workload in this
+  # chart yet for /ready to check against. Flip this on once both exist
+  # (tracked as Phase 4 of the CD roadmap).
+  probes:
+    enabled: false
+
+    readiness:
+      path: /ready
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+    liveness:
+      path: /health
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      failureThreshold: 3
+
+    startup:
+      path: /health
+      failureThreshold: 30
+      periodSeconds: 2
+
+config:
+  API_NAME: "ROS2 Backend"
+  DEBUG: "true"
+  ROS_DOMAIN_ID: "0"
+  ROS_MASTER: "localhost"
+
+# NOTE: plaintext for parity with the existing k8s/secrets.yaml this chart
+# replaces. Override at install time (--set secret.API_KEY=... or -f a
+# private values file kept out of git), don't commit real secrets here.
+secret:
+  API_KEY: "my-secret-key"
+  JWT_SECRET: "super-secret-password"
+
+ingress:
+  enabled: true
+  className: nginx
+
+  hosts:
+    - host: ros2.local
+      serviceName: frontend-service
+      servicePort: 80
+
+    - host: api.ros2.local
+      serviceName: backend-service
+      servicePort: 8000

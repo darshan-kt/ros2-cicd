@@ -136,3 +136,53 @@ jobs:
 
           docker push \
           ${{ secrets.DOCKERHUB_USERNAME }}/ros2-frontend:${{ github.sha }}
+
+  ###################################################
+  # CD - GitOps handoff
+  #
+  # This job does NOT deploy anything itself. It bumps the image tags in
+  # the Helm chart and pushes that change back to git. ArgoCD, running
+  # inside the cluster, watches this repo and reconciles the cluster to
+  # match on its own. That split (CI never touches the cluster) is what
+  # lets this pipeline deploy to a cluster GitHub's cloud runners can't
+  # reach, like a local minikube.
+  ###################################################
+
+  cd:
+
+    needs: ci
+
+    runs-on: ubuntu-latest
+
+    if: github.event_name == 'push'
+
+    permissions:
+      contents: write
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/yq \
+          https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Bump image tags in Helm values
+        run: |
+          yq -i '.backend.image.tag = "${{ github.sha }}"' helm/ros2-cicd/values.yaml
+          yq -i '.frontend.image.tag = "${{ github.sha }}"' helm/ros2-cicd/values.yaml
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add helm/ros2-cicd/values.yaml
+
+          git diff --cached --quiet || git commit -m "ci: bump image tags to ${{ github.sha }} [skip ci]"
+
+          git push

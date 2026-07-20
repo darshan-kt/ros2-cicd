@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: backend
+  namespace: {{ .Values.namespace }}
+
+spec:
+
+  replicas: {{ .Values.backend.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+
+    metadata:
+      labels:
+        app: backend
+
+    spec:
+
+      containers:
+
+      - name: backend
+
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+
+        imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+
+        ports:
+        - containerPort: {{ .Values.backend.containerPort }}
+
+        envFrom:
+          - configMapRef:
+              name: backend-config
+          - secretRef:
+              name: backend-secret
+
+        {{- if .Values.backend.probes.enabled }}
+
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.backend.probes.readiness.path }}
+            port: {{ .Values.backend.containerPort }}
+          initialDelaySeconds: {{ .Values.backend.probes.readiness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.probes.readiness.periodSeconds }}
+
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.backend.probes.liveness.path }}
+            port: {{ .Values.backend.containerPort }}
+          initialDelaySeconds: {{ .Values.backend.probes.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.probes.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.backend.probes.liveness.failureThreshold }}
+
+        startupProbe:
+          httpGet:
+            path: {{ .Values.backend.probes.startup.path }}
+            port: {{ .Values.backend.containerPort }}
+          failureThreshold: {{ .Values.backend.probes.startup.failureThreshold }}
+          periodSeconds: {{ .Values.backend.probes.startup.periodSeconds }}
+
+        {{- end }}
+
+        {{- if .Values.backend.resources }}
+        resources:
+          {{- toYaml .Values.backend.resources | nindent 10 }}
+        {{- end }}

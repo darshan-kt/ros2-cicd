@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 import ros_bridge
@@ -23,6 +23,11 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+def root():
+    return {"message": "ROS2 Backend"}
+
+
 @app.get("/health")
 def health():
     return {
@@ -30,6 +35,14 @@ def health():
         "subscriber": ros_bridge.subscriber_alive,
         "system": ros_bridge.publisher_alive and ros_bridge.subscriber_alive,
     }
+
+
+@app.get("/ready")
+def ready():
+    if ros_bridge.publisher_alive and ros_bridge.subscriber_alive:
+        return {"ready": True}
+
+    raise HTTPException(status_code=503, detail="ROS2 not ready")
 
 
 @app.post("/reset")

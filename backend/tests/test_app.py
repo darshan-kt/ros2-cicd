@@ -5,6 +5,20 @@ from app import app
 client = TestClient(app)
 
 
+def test_root():
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert response.json() == {"message": "ROS2 Backend"}
+
+
+def test_ready_reports_unavailable_without_ros():
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "ROS2 not ready"}
+
+
 def test_health_defaults_false_without_ros():
     response = client.get("/health")
 
