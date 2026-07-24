@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROS2 CI/CD Pipeline — darshan-kt/ros2-cicd</title>
+<style>
+  :root {
+    /* light theme (default) */
+    --bg: #F3F5FA;
+    --bg-soft: #E7EBF3;
+    --card: #FFFFFF;
+    --card-border: #DCE1EC;
+    --line: #C4CCDE;
+    --text: #171B24;
+    --text-dim: #565F73;
+    --code-bg: #EEF1F8;
+    --code-text: #2B3244;
+
+    --accent: #B5760F;   /* deploy / CD */
+    --ci: #0E8E79;       /* integration */
+    --gitops: #6748D6;   /* gitops / argocd */
+    --runtime: #1B8A4C;  /* kubernetes runtime */
+    --good: #1B8A4C;
+
+    --font-mono: ui-monospace, "JetBrains Mono", "Fira Code", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0A0E16;
+      --bg-soft: #0F1421;
+      --card: #121728;
+      --card-border: #232B41;
+      --line: #313B57;
+      --text: #E7ECF7;
+      --text-dim: #97A2BE;
+      --code-bg: #0D111C;
+      --code-text: #C9D3EA;
+
+      --accent: #E8A33D;
+      --ci: #45D6BC;
+      --gitops: #AC93FF;
+      --runtime: #63D287;
+      --good: #63D287;
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0A0E16;
+    --bg-soft: #0F1421;
+    --card: #121728;
+    --card-border: #232B41;
+    --line: #313B57;
+    --text: #E7ECF7;
+    --text-dim: #97A2BE;
+    --code-bg: #0D111C;
+    --code-text: #C9D3EA;
+
+    --accent: #E8A33D;
+    --ci: #45D6BC;
+    --gitops: #AC93FF;
+    --runtime: #63D287;
+    --good: #63D287;
+    color-scheme: dark;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #F3F5FA;
+    --bg-soft: #E7EBF3;
+    --card: #FFFFFF;
+    --card-border: #DCE1EC;
+    --line: #C4CCDE;
+    --text: #171B24;
+    --text-dim: #565F73;
+    --code-bg: #EEF1F8;
+    --code-text: #2B3244;
+
+    --accent: #B5760F;
+    --ci: #0E8E79;
+    --gitops: #6748D6;
+    --runtime: #1B8A4C;
+    --good: #1B8A4C;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background:
+      repeating-linear-gradient(0deg, color-mix(in srgb, var(--line) 22%, transparent) 0, color-mix(in srgb, var(--line) 22%, transparent) 1px, transparent 1px, transparent 96px),
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--line) 22%, transparent) 0, color-mix(in srgb, var(--line) 22%, transparent) 1px, transparent 1px, transparent 96px),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  main {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: clamp(28px, 5vw, 64px) clamp(18px, 4vw, 32px) 80px;
+  }
+
+  a { color: inherit; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-mono);
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  code, .mono { font-family: var(--font-mono); }
+
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- theme toggle ---------- */
+
+  .theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+
+  .theme-toggle:hover { color: var(--text); }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 32px;
+    margin-bottom: 40px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent);
+  }
+
+  h1 {
+    font-size: clamp(1.7rem, 4vw, 2.5rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .masthead p.lede {
+    max-width: 62ch;
+    color: var(--text-dim);
+    font-size: 1.02rem;
+    margin: 14px 0 0;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--card-border);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 28px;
+  }
+
+  .stat {
+    background: var(--card);
+    padding: 16px 14px;
+  }
+
+  .stat .n {
+    font-family: var(--font-mono);
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .stat .l {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+    line-height: 1.3;
+  }
+
+  @media (max-width: 560px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ---------- at-a-glance strip ---------- */
+
+  .glance {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 56px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    white-space: nowrap;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+    color: var(--text);
+  }
+
+  .chip b { font-weight: 700; }
+
+  .glance .arrow {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+
+  .chip[data-c="trigger"] { border-color: var(--line); }
+  .chip[data-c="ci"] { border-color: color-mix(in srgb, var(--ci) 55%, var(--card-border)); color: var(--ci); }
+  .chip[data-c="cd"] { border-color: color-mix(in srgb, var(--accent) 55%, var(--card-border)); color: var(--accent); }
+  .chip[data-c="gitops"] { border-color: color-mix(in srgb, var(--gitops) 55%, var(--card-border)); color: var(--gitops); }
+  .chip[data-c="runtime"] { border-color: color-mix(in srgb, var(--runtime) 55%, var(--card-border)); color: var(--runtime); }
+
+  /* ---------- legend ---------- */
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-bottom: 40px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  /* ---------- schematic / spine ---------- */
+
+  .schematic { position: relative; }
+
+  .schematic::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 27px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--ci), var(--accent) 35%, var(--gitops) 68%, var(--runtime));
+    opacity: 0.5;
+  }
+
+  .stage {
+    display: flex;
+    gap: 22px;
+    align-items: flex-start;
+    margin-bottom: 44px;
+    position: relative;
+  }
+
+  .stage:last-child { margin-bottom: 0; }
+
+  .stage__node {
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 1.05rem;
+    background: var(--bg);
+    border: 2px solid var(--stage-c, var(--line));
+    color: var(--stage-c, var(--text));
+    z-index: 1;
+  }
+
+  .stage__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-top: 3px solid var(--stage-c, var(--line));
+    border-radius: 10px;
+    padding: 20px 22px 22px;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .stage__body:hover { transform: translateY(-2px); }
+  }
+
+  .stage__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stage-c, var(--text-dim));
+    margin-bottom: 6px;
+  }
+
+  .stage__body h2 {
+    font-size: 1.22rem;
+    margin-bottom: 8px;
+  }
+
+  .stage__body p.desc {
+    color: var(--text-dim);
+    margin: 0 0 14px;
+    max-width: 60ch;
+  }
+
+  .stage__list {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+    display: grid;
+    gap: 7px;
+  }
+
+  .stage__list li {
+    font-size: 0.9rem;
+    padding-left: 18px;
+    position: relative;
+  }
+
+  .stage__list li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--stage-c, var(--text-dim));
+  }
+
+  pre.term {
+    margin: 0;
+    padding: 12px 14px;
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: 7px;
+    border: 1px solid var(--card-border);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+
+  .fact-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .fact {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    background: var(--bg-soft);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 5px 9px;
+    color: var(--text-dim);
+  }
+
+  .fact b { color: var(--text); font-weight: 700; }
+
+  /* ---------- callout ---------- */
+
+  .callout {
+    margin: -18px 0 44px 78px;
+    border: 1px dashed color-mix(in srgb, var(--gitops) 55%, var(--card-border));
+    border-radius: 10px;
+    padding: 16px 20px;
+    background: color-mix(in srgb, var(--gitops) 6%, var(--card));
+    max-width: 62ch;
+  }
+
+  @media (max-width: 620px) {
+    .callout { margin-left: 0; }
+  }
+
+  .callout .k {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gitops);
+    margin-bottom: 6px;
+  }
+
+  .callout p { margin: 0; font-size: 0.92rem; color: var(--text); }
+
+  /* ---------- runtime board ---------- */
+
+  .board {
+    margin-top: 8px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 22px 24px;
+  }
+
+  .board h3 {
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+    color: var(--text-dim);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding: 6px 13px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--good) 40%, var(--card-border));
+    color: var(--good);
+    background: color-mix(in srgb, var(--good) 8%, var(--card));
+  }
+
+  .pill i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 22%, transparent);
+  }
+
+  .route-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .route-table tbody { display: table; width: 100%; }
+
+  .route-table td {
+    padding: 9px 4px;
+    border-top: 1px solid var(--card-border);
+    vertical-align: top;
+  }
+
+  .route-table tr:first-child td { border-top: none; }
+
+  .route-table td.host { font-family: var(--font-mono); color: var(--text); white-space: nowrap; }
+  .route-table td.arrow { color: var(--text-dim); width: 24px; }
+  .route-table td.dest { font-family: var(--font-mono); color: var(--text-dim); }
+
+  .probe-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  @media (max-width: 640px) {
+    .probe-grid { grid-template-columns: 1fr; }
+  }
+
+  .probe {
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: var(--bg-soft);
+  }
+
+  .probe .name {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--runtime);
+    margin-bottom: 6px;
+  }
+
+  .probe .detail {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  footer .tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    font-family: var(--font-mono);
+  }
+
+  footer .repo { font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">theme: auto</button>
+
+<main>
+
+  <header class="masthead">
+    <div class="eyebrow">pipeline status &middot; synced &amp; healthy</div>
+    <h1>One push, five automated stages, zero manual kubectl</h1>
+    <p class="lede">
+      How <span class="mono">darshan-kt/ros2-cicd</span> gets from a commit to a running
+      pod: GitHub Actions builds and hands off, ArgoCD pulls and applies, Kubernetes
+      runs it &mdash; and nothing outside the cluster ever holds cluster credentials.
+    </p>
+
+    <div class="stats">
+      <div class="stat"><div class="n num">2</div><div class="l">GitHub Actions jobs per push</div></div>
+      <div class="stat"><div class="n num">3</div><div class="l">container images built &amp; tagged</div></div>
+      <div class="stat"><div class="n num">5</div><div class="l">pods running the app</div></div>
+      <div class="stat"><div class="n num">0</div><div class="l">manual kubectl / helm commands to ship</div></div>
+    </div>
+  </header>
+
+  <div class="glance" aria-hidden="true">
+    <span class="chip" data-c="trigger">git push</span>
+    <span class="arrow">&rarr;</span>
+    <span class="chip" data-c="ci">ci job</span>
+    <span class="arrow">&rarr;</span>
+    <span class="chip" data-c="cd">cd job</span>
+    <span class="arrow">&rarr;</span>
+    <span class="chip" data-c="gitops">git repo</span>
+    <span class="arrow">&rarr;</span>
+    <span class="chip" data-c="gitops">argocd sync</span>
+    <span class="arrow">&rarr;</span>
+    <span class="chip" data-c="runtime">kubernetes</span>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--ci)"></i>Continuous Integration</span>
+    <span><i style="background:var(--accent)"></i>Continuous Deployment</span>
+    <span><i style="background:var(--gitops)"></i>GitOps hand-off</span>
+    <span><i style="background:var(--runtime)"></i>Kubernetes runtime</span>
+  </div>
+
+  <div class="schematic">
+
+    <div class="stage">
+      <div class="stage__node" style="--stage-c: var(--text-dim)">0</div>
+      <div class="stage__body" style="--stage-c: var(--text-dim)">
+        <div class="stage__eyebrow">the only manual step</div>
+        <h2>Developer pushes to master</h2>
+        <p class="desc">
+          Everything downstream of this is automatic. There is no second command
+          a human runs to make a change live.
+        </p>
+        <pre class="term">$ git push origin master</pre>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage__node" style="--stage-c: var(--ci)">1</div>
+      <div class="stage__body" style="--stage-c: var(--ci)">
+        <div class="stage__eyebrow">github actions &middot; job: ci</div>
+        <h2>Lint, test, scan, build, publish</h2>
+        <p class="desc">
+          Runs on every push and every pull request. Nothing gets built unless
+          it passes first.
+        </p>
+        <ul class="stage__list">
+          <li>Ruff &mdash; <code class="mono">ruff check backend</code></li>
+          <li>Pytest + coverage, gated at <b>80%</b> &mdash; <code class="mono">coverage report --fail-under=80</code></li>
+          <li>Bandit security scan &mdash; <code class="mono">bandit -r backend --exclude backend/tests</code></li>
+          <li>Build 3 images: <code class="mono">ros2-monitoring</code>, <code class="mono">backend</code>, <code class="mono">frontend</code></li>
+          <li>Push to DockerHub, tagged with the commit SHA (push events only)</li>
+        </ul>
+        <div class="fact-row">
+          <span class="fact"><b>darshu916/ros2-backend</b>:&lt;sha&gt;</span>
+          <span class="fact"><b>darshu916/ros2-frontend</b>:&lt;sha&gt;</span>
+          <span class="fact"><b>darshu916/ros2-monitoring</b>:&lt;sha&gt;</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage__node" style="--stage-c: var(--accent)">2</div>
+      <div class="stage__body" style="--stage-c: var(--accent)">
+        <div class="stage__eyebrow">github actions &middot; job: cd &middot; needs: ci</div>
+        <h2>Point the chart at the new images</h2>
+        <p class="desc">
+          Runs only on push, only after CI succeeds. It edits one file and pushes &mdash;
+          it never calls the Kubernetes API.
+        </p>
+        <pre class="term">$ yq -i '.backend.image.tag = "&lt;sha&gt;"' helm/ros2-cicd/values.yaml
+$ yq -i '.frontend.image.tag = "&lt;sha&gt;"' helm/ros2-cicd/values.yaml
+$ git commit -m "ci: bump image tags to &lt;sha&gt; [skip ci]"
+$ git push</pre>
+        <div class="fact-row">
+          <span class="fact"><b>[skip ci]</b> stops the loop</span>
+          <span class="fact">permissions: <b>contents: write</b> only</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage__node" style="--stage-c: var(--gitops)">3</div>
+      <div class="stage__body" style="--stage-c: var(--gitops)">
+        <div class="stage__eyebrow">github repository &middot; branch: master</div>
+        <h2>Git becomes the desired state</h2>
+        <p class="desc">
+          <code class="mono">helm/ros2-cicd/values.yaml</code> on <code class="mono">master</code>
+          is, at any moment, the full definition of what should be running. Not a
+          deploy log &mdash; the actual source ArgoCD reads from.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="k">why pull, not push</div>
+      <p>
+        GitHub's cloud runners have no route to a local minikube cluster. Rather
+        than hand CI a kubeconfig, the cd job only ever writes to git &mdash; ArgoCD,
+        running inside the cluster, is the one that reaches out and pulls.
+        Cluster credentials never leave the cluster.
+      </p>
+    </div>
+
+    <div class="stage">
+      <div class="stage__node" style="--stage-c: var(--gitops)">4</div>
+      <div class="stage__body" style="--stage-c: var(--gitops)">
+        <div class="stage__eyebrow">argocd &middot; application: ros2-cicd</div>
+        <h2>Reconcile the cluster to match git</h2>
+        <p class="desc">
+          Polls the repo, renders <code class="mono">helm/ros2-cicd</code> itself
+          (no <code class="mono">helm</code> binary needed in-cluster), and applies
+          through the same Kubernetes API <code class="mono">kubectl</code> uses.
+        </p>
+        <ul class="stage__list">
+          <li>Sync policy: <b>automated</b>, prune on</li>
+          <li>selfHeal on &mdash; a manual <code class="mono">kubectl edit</code> gets reverted back to match git</li>
+          <li>Destination namespace: <code class="mono">cicd-demo</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage__node" style="--stage-c: var(--runtime)">5</div>
+      <div class="stage__body" style="--stage-c: var(--runtime)">
+        <div class="stage__eyebrow">kubernetes &middot; namespace: cicd-demo</div>
+        <h2>Traffic reaches only what's actually ready</h2>
+        <p class="desc">
+          New pods roll in behind the old ones and only take traffic once they pass
+          their own readiness check &mdash; not just "process started."
+        </p>
+        <ul class="stage__list">
+          <li><b>frontend</b> &times; 2 replicas</li>
+          <li><b>backend</b> &times; 2 replicas &mdash; readiness gated on actually discovering the <code class="mono">ros2</code> pod over DDS</li>
+          <li><b>ros2</b> &times; 1 replica &mdash; publisher_node + subscriber_node, sharing <code class="mono">ROS_DOMAIN_ID</code> with the backend</li>
+        </ul>
+
+        <div class="probe-grid">
+          <div class="probe">
+            <div class="name">startup</div>
+            <div class="detail">GET /health &middot; up to 60s grace, checked every 2s</div>
+          </div>
+          <div class="probe">
+            <div class="name">liveness</div>
+            <div class="detail">GET /health &middot; every 10s &middot; 3 strikes restarts the pod</div>
+          </div>
+          <div class="probe">
+            <div class="name">readiness</div>
+            <div class="detail">GET /ready &middot; every 5s &middot; real ROS2 connectivity, not just uptime</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="board">
+    <h3>what's live right now</h3>
+    <div class="pill-row">
+      <span class="pill"><i></i>argocd &middot; synced</span>
+      <span class="pill"><i></i>argocd &middot; healthy</span>
+      <span class="pill"><i></i>backend &middot; system healthy</span>
+      <span class="pill"><i></i>dashboard &middot; live</span>
+    </div>
+
+    <table class="route-table">
+      <tbody>
+        <tr><td class="host">ros2.local</td><td class="arrow">&rarr;</td><td class="dest">frontend-service:80 &rarr; frontend Pods</td></tr>
+        <tr><td class="host">api.ros2.local</td><td class="arrow">&rarr;</td><td class="dest">backend-service:8000 &rarr; backend Pods</td></tr>
+        <tr><td class="host">api.ros2.local/health</td><td class="arrow">&rarr;</td><td class="dest">{"publisher":true,"subscriber":true,"system":true}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    <span class="repo">darshan-kt/ros2-cicd &middot; helm/ros2-cicd &middot; argocd/application.yaml</span>
+    <span class="tools">kubernetes&middot;minikube&middot;helm&middot;argocd&middot;nginx-ingress&middot;github-actions&middot;dockerhub&middot;yq</span>
+  </footer>
+
+</main>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById("theme-toggle");
+    var order = ["auto", "light", "dark"];
+    var stored = localStorage.getItem("ros2-cicd-infographic-theme") || "auto";
+
+    function apply(mode) {
+      if (mode === "auto") {
+        root.removeAttribute("data-theme");
+      } else {
+        root.setAttribute("data-theme", mode);
+      }
+      btn.textContent = "theme: " + mode;
+      localStorage.setItem("ros2-cicd-infographic-theme", mode);
+    }
+
+    apply(stored);
+
+    btn.addEventListener("click", function () {
+      var next = order[(order.indexOf(stored) + 1) % order.length];
+      stored = next;
+      apply(next);
+    });
+  })();
+</script>
+
+</body>
+</html>
